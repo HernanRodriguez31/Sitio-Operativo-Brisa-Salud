@@ -1,0 +1,24 @@
+name: Site CI
+on:
+  pull_request:
+  push:
+    branches: [ main ]
+jobs:
+  qa:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Start local server
+        run: npx -y http-server -p 8080 . & sleep 4
+      - name: HTML Lint (warning only)
+        run: npx -y htmlhint "**/*.html" || echo "::warning::HTMLHint reported issues"
+      - name: Lighthouse (headless)
+        run: npx -y lighthouse http://localhost:8080 --quiet --chrome-flags="--headless" --only-categories=performance,accessibility,best-practices,seo --output=json --output-path=./lhr.json
+      - name: Upload report
+        uses: actions/upload-artifact@v4
+        with:
+          name: lighthouse-report
+          path: lhr.json
